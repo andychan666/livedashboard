@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0E1214">
+  <title>香港實時生活儀表板 (粉嶺聯和墟)</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* 隱藏滾動條但保持滾動功能 */
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-thin::-webkit-scrollbar {
+      height: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spin-slow 12s linear infinite;
+    }
+    html, body, #root {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #0E1214;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+    // Lucide Icon Helper Component
+    function LucideIcon({ name, className = '', style = {} }) {
+      const iconRef = useRef(null);
+
+      useEffect(() => {
+        if (iconRef.current && window.lucide) {
+          // 清空前一次渲染
+          iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+          window.lucide.createIcons({
+            root: iconRef.current,
+            attrs: {
+              class: className
+            }
+          });
+        }
+      }, [name, className]);
+
+      return <span ref={iconRef} className="inline-flex items-center justify-center" style={style}></span>;
+    }
+
+    // 常用圖標定義
+    const Bus = (props) => <LucideIcon name="bus" {...props} />;
+    const CloudRain = (props) => <LucideIcon name="cloud-rain" {...props} />;
+    const Sun = (props) => <LucideIcon name="sun" {...props} />;
+    const Droplets = (props) => <LucideIcon name="droplets" {...props} />;
+    const Clock = (props) => <LucideIcon name="clock" {...props} />;
+    const RefreshCw = (props) => <LucideIcon name="refresh-cw" {...props} />;
+    const ArrowRightLeft = (props) => <LucideIcon name="arrow-right-left" {...props} />;
+    const MapPin = (props) => <LucideIcon name="map-pin" {...props} />;
+    const Sparkles = (props) => <LucideIcon name="sparkles" {...props} />;
+    const Wifi = (props) => <LucideIcon name="wifi" {...props} />;
+    const Flame = (props) => <LucideIcon name="flame" {...props} />;
+    const Search = (props) => <LucideIcon name="search" {...props} />;
+    const Umbrella = (props) => <LucideIcon name="umbrella" {...props} />;
+    const Gauge = (props) => <LucideIcon name="gauge" {...props} />;
+    const Layers = (props) => <LucideIcon name="layers" {...props} />;
+    const Activity = (props) => <LucideIcon name="activity" {...props} />;
+    const History = (props) => <LucideIcon name="history" {...props} />;
+    const ArrowRight = (props) => <LucideIcon name="arrow-right" {...props} />;
+    const Crosshair = (props) => <LucideIcon name="crosshair" {...props} />;
+    const Loader2 = (props) => <LucideIcon name="loader-2" {...props} />;
+    const Navigation = (props) => <LucideIcon name="navigation" {...props} />;
+    const Palette = (props) => <LucideIcon name="palette" {...props} />;
+    const Check = (props) => <LucideIcon name="check" {...props} />;
+    const X = (props) => <LucideIcon name="x" {...props} />;
+    const CloudLightning = (props) => <LucideIcon name="cloud-lightning" {...props} />;
+    const CloudSun = (props) => <LucideIcon name="cloud-sun" {...props} />;
+    const CloudFog = (props) => <LucideIcon name="cloud-fog" {...props} />;
+    const Cloud = (props) => <LucideIcon name="cloud" {...props} />;
+    const Moon = (props) => <LucideIcon name="moon" {...props} />;
+    const CloudMoonRain = (props) => <LucideIcon name="cloud-moon-rain" {...props} />;
+    const SunMedium = (props) => <LucideIcon name="sun-medium" {...props} />;
+    const RotateCw = (props) => <LucideIcon name="rotate-cw" {...props} />;
+
+    // =========================================================================
+    // 6 款現代礦石調色盤 (Modern Mineral Themes)
+    // =========================================================================
+    const MINERAL_THEMES = {
+      emerald: {
+        id: 'emerald',
+        name: '黑曜翡翠 (Emerald)',
+        dotColor: '#10B981',
+        isDark: true,
+        bgGradient: 'bg-[#0E1214] text-[#E5E9EC] bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(16,185,129,0.18),rgba(14,18,20,1))]',
+        cardBg: 'bg-[#151B1F]/90 border-[#26333D]',
+        innerCard: 'bg-[#111618] border-[#222E37]',
+        accentText: 'text-emerald-400',
+        accentBorder: 'border-emerald-500/40',
+        accentBadge: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+        btnPrimary: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/30',
+        activeChip: 'bg-emerald-600 text-white border-emerald-400 shadow-md',
+        glow1: 'bg-emerald-500/10',
+        glow2: 'bg-teal-500/10'
+      },
+      sapphire: {
+        id: 'sapphire',
+        name: '深海青金石 (Lapis)',
+        dotColor: '#3B82F6',
+        isDark: true,
+        bgGradient: 'bg-[#0A0F16] text-[#E2E8F0] bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(59,130,246,0.2),rgba(10,15,22,1))]',
+        cardBg: 'bg-[#111A24]/90 border-[#1E2D3E]',
+        innerCard: 'bg-[#0D141D] border-[#182433]',
+        accentText: 'text-blue-400',
+        accentBorder: 'border-blue-500/40',
+        accentBadge: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
+        btnPrimary: 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-950/30',
+        activeChip: 'bg-blue-600 text-white border-blue-400 shadow-md',
+        glow1: 'bg-blue-500/10',
+        glow2: 'bg-sky-500/10'
+      },
+      amethyst: {
+        id: 'amethyst',
+        name: '紫晶幻石 (Amethyst)',
+        dotColor: '#A855F7',
+        isDark: true,
+        bgGradient: 'bg-[#110D18] text-[#ECE4F5] bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(168,85,247,0.2),rgba(17,13,24,1))]',
+        cardBg: 'bg-[#191424]/90 border-[#2D2142]',
+        innerCard: 'bg-[#140F1E] border-[#241A35]',
+        accentText: 'text-purple-400',
+        accentBorder: 'border-purple-500/40',
+        accentBadge: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
+        btnPrimary: 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-950/30',
+        activeChip: 'bg-purple-600 text-white border-purple-400 shadow-md',
+        glow1: 'bg-purple-500/10',
+        glow2: 'bg-pink-500/10'
+      },
+      amber: {
+        id: 'amber',
+        name: '赤金瑪瑙 (Amber)',
+        dotColor: '#F59E0B',
+        isDark: true,
+        bgGradient: 'bg-[#14100C] text-[#EFE7DC] bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(245,158,11,0.2),rgba(20,16,12,1))]',
+        cardBg: 'bg-[#1F1813]/90 border-[#382B20]',
+        innerCard: 'bg-[#17120D] border-[#2C2117]',
+        accentText: 'text-amber-400',
+        accentBorder: 'border-amber-500/40',
+        accentBadge: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+        btnPrimary: 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-950/30',
+        activeChip: 'bg-amber-600 text-white border-amber-400 shadow-md',
+        glow1: 'bg-amber-500/10',
+        glow2: 'bg-orange-500/10'
+      },
+      calcite: {
+        id: 'calcite',
+        name: '暖白方解石 (Calcite)',
+        dotColor: '#059669',
+        isDark: false,
+        bgGradient: 'bg-[#F4F0E8] text-[#2D3338] bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(228,220,206,0.7),rgba(244,240,232,1))]',
+        cardBg: 'bg-[#FCFAF6]/95 border-[#E2DAD0]',
+        innerCard: 'bg-[#F1ECE1] border-[#DDD5C7]',
+        accentText: 'text-emerald-700',
+        accentBorder: 'border-emerald-600/30',
+        accentBadge: 'bg-emerald-100 border-emerald-300 text-emerald-800',
+        btnPrimary: 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-emerald-200',
+        activeChip: 'bg-emerald-700 text-white border-emerald-600 shadow-md',
+        glow1: 'bg-amber-500/5',
+        glow2: 'bg-emerald-500/5'
+      },
+      glacier: {
+        id: 'glacier',
+        name: '冰川天河石 (Glacier)',
+        dotColor: '#0891B2',
+        isDark: false,
+        bgGradient: 'bg-[#EAF2F4] text-[#243238] bg-[radial-gradient(ellipse_80%_80%_at_50%_-10%,rgba(205,230,238,0.8),rgba(234,242,244,1))]',
+        cardBg: 'bg-[#F8FAFB]/95 border-[#D0DFE5]',
+        innerCard: 'bg-[#E3EDF0] border-[#CAD8DE]',
+        accentText: 'text-cyan-700',
+        accentBorder: 'border-cyan-600/30',
+        accentBadge: 'bg-cyan-100 border-cyan-300 text-cyan-800',
+        btnPrimary: 'bg-cyan-700 hover:bg-cyan-600 text-white shadow-cyan-200',
+        activeChip: 'bg-cyan-700 text-white border-cyan-600 shadow-md',
+        glow1: 'bg-cyan-500/5',
+        glow2: 'bg-sky-500/5'
+      }
+    };
+
+    // 預設參考位置：粉嶺 聯和墟
+    const DEFAULT_LOCATION = {
+      name: '粉嶺 聯和墟',
+      lat: 22.4996,
+      lon: 114.1424
+    };
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * (Math.PI / 180);
+      const dLon = (lon2 - lon1) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // 聯和墟專屬核心常用巴士路線
+    const LUEN_WO_HUI_ROUTES = [
+      { route: '277X', label: '277X 藍田站' },
+      { route: '278K', label: '278K 粉嶺站' },
+      { route: '78X', label: '78X 觀塘碼頭' },
+      { route: '70K', label: '70K 清河' },
+      { route: '79K', label: '79K 打鼓嶺' },
+      { route: '277E', label: '277E 藍田站' },
+      { route: '270B', label: '270B 奧運站' },
+      { route: '978', label: '978 灣仔北' }
+    ];
+
+    // =========================================================================
+    // 加大動態天氣公仔元件
+    // =========================================================================
+    function LargeWeatherAvatar({ conditionType, isNight = false, isDark = true }) {
+      switch (conditionType) {
+        case 'thunder':
+          return (
+            <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
+              <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl animate-pulse" />
+              <div className={`w-full h-full rounded-3xl border flex items-center justify-center shadow-lg relative ${
+                isDark ? 'bg-gradient-to-br from-[#2D2138] to-[#171420] border-amber-500/40' : 'bg-gradient-to-br from-[#F5E8E4] to-[#EBD5CD] border-amber-400'
+              }`}>
+                <CloudLightning className="w-14 h-14 sm:w-16 sm:h-16 text-amber-400 animate-bounce" />
+                <span className="absolute bottom-1.5 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-amber-500 text-black">
+                  雷暴注意
+                </span>
+              </div>
+            </div>
+          );
+
+        case 'rain':
+        case 'cloud-rain':
+          return (
+            <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
+              <div className="absolute inset-0 bg-sky-500/20 rounded-full blur-xl animate-pulse" />
+              <div className={`w-full h-full rounded-3xl border flex items-center justify-center shadow-lg relative ${
+                isDark ? 'bg-gradient-to-br from-[#162633] to-[#101820] border-sky-500/40' : 'bg-gradient-to-br from-[#E1F0F5] to-[#D0E6EE] border-sky-400'
+              }`}>
+                <CloudRain className="w-14 h-14 sm:w-16 sm:h-16 text-sky-400 animate-pulse" />
+                <span className="absolute bottom-1.5 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-sky-500 text-white">
+                  有雨
+                </span>
+              </div>
+            </div>
+          );
+
+        case 'cloud-sun':
+          return (
+            <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
+              <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-xl" />
+              <div className={`w-full h-full rounded-3xl border flex items-center justify-center shadow-lg relative ${
+                isDark ? 'bg-gradient-to-br from-[#242A30] to-[#141A1E] border-amber-400/30' : 'bg-gradient-to-br from-[#FCF4E4] to-[#EDE1C8] border-amber-300'
+              }`}>
+                <CloudSun className="w-14 h-14 sm:w-16 sm:h-16 text-amber-400" />
+                <span className="absolute bottom-1.5 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-amber-400/20 border border-amber-400/40 text-amber-400">
+                  短暫陽光
+                </span>
+              </div>
+            </div>
+          );
+
+        case 'cloud':
+          return (
+            <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
+              <div className={`w-full h-full rounded-3xl border flex items-center justify-center shadow-lg relative ${
+                isDark ? 'bg-gradient-to-br from-[#1E252B] to-[#12161A] border-stone-600' : 'bg-gradient-to-br from-[#EAE6DF] to-[#DAD4CA] border-stone-400'
+              }`}>
+                <Cloud className="w-14 h-14 sm:w-16 sm:h-16 text-stone-300" />
+                <span className="absolute bottom-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold text-stone-400 bg-stone-800/60">
+                  大致多雲
+                </span>
+              </div>
+            </div>
+          );
+
+        case 'night':
+          return (
+            <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
+              <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl" />
+              <div className={`w-full h-full rounded-3xl border flex items-center justify-center shadow-lg relative ${
+                isDark ? 'bg-gradient-to-br from-[#1A1E30] to-[#0F1320] border-indigo-500/40' : 'bg-gradient-to-br from-[#E6E8F5] to-[#D5D9EC] border-indigo-300'
+              }`}>
+                <Moon className="w-12 h-12 sm:w-14 sm:h-14 text-indigo-300 animate-pulse" />
+                <span className="absolute bottom-1.5 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-indigo-500/30 text-indigo-200">
+                  夜間晴朗
+                </span>
+              </div>
+            </div>
+          );
+
+        case 'sun':
+        default:
+          return (
+            <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
+              <div className="absolute inset-0 bg-amber-500/30 rounded-full blur-2xl animate-pulse" />
+              <div className={`w-full h-full rounded-3xl border flex items-center justify-center shadow-lg relative ${
+                isDark ? 'bg-gradient-to-br from-[#2D2619] to-[#18140D] border-amber-500/50' : 'bg-gradient-to-br from-[#FFF7E6] to-[#F7E6C4] border-amber-400'
+              }`}>
+                <Sun className="w-14 h-14 sm:w-16 sm:h-16 text-amber-400 animate-spin-slow" />
+                <span className="absolute bottom-1.5 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase bg-amber-500 text-black">
+                  天晴酷熱
+                </span>
+              </div>
+            </div>
+          );
+      }
+    }
+
+    function App() {
+      const [currentThemeKey, setCurrentThemeKey] = useState('emerald');
+      const [showThemeModal, setShowThemeModal] = useState(false);
+      const theme = MINERAL_THEMES[currentThemeKey];
+
+      const [currentTime, setCurrentTime] = useState(new Date());
+
+      // 巴士狀態 (預設 277X 聯和墟)
+      const [routeInput, setRouteInput] = useState('277X');
+      const [currentRoute, setCurrentRoute] = useState('277X');
+      const [direction, setDirection] = useState('outbound');
+      const [isCircularRoute, setIsCircularRoute] = useState(false);
+      const [routeMeta, setRouteMeta] = useState({ orig: '粉嶺(聯和墟)', dest: '藍田站' });
+      const [stopsList, setStopsList] = useState([]);
+      const [selectedStop, setSelectedStop] = useState(null);
+      const [etaData, setEtaData] = useState([]);
+      
+      const [isBusLoading, setIsBusLoading] = useState(false);
+      const [countdown, setCountdown] = useState(60);
+      const [lastBusUpdate, setLastBusUpdate] = useState(new Date());
+
+      // GPS 定位狀態
+      const [isLocating, setIsLocating] = useState(false);
+      const [currentLocationName, setCurrentLocationName] = useState(DEFAULT_LOCATION.name);
+      const [nearbyStops, setNearbyStops] = useState([]);
+      const [showNearbyModal, setShowNearbyModal] = useState(false);
+
+      // 天氣狀態
+      const [weather, setWeather] = useState({
+        temperature: 28,
+        humidity: 76,
+        uvIndex: 5,
+        uvLevel: '中等',
+        rainfallProb: 20,
+        rainfallStatus: '大致多雲，局部短暫陣雨',
+        conditionType: 'sun',
+        districtRainfall: [],
+        warnings: [],
+        hourlyForecast: []
+      });
+      const [isWeatherLoading, setIsWeatherLoading] = useState(false);
+
+      const allKmbStopsRef = useRef(null);
+
+      const isNightTime = useMemo(() => {
+        const hours = currentTime.getHours();
+        return hours >= 19 || hours < 6;
+      }, [currentTime]);
+
+      // 1. 時鐘計時器
+      useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      // 2. 巴士 60 秒倒數
+      useEffect(() => {
+        const countdownTimer = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              fetchBusETA();
+              return 60;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(countdownTimer);
+      }, [currentRoute, direction, selectedStop]);
+
+      // 3. 香港天文台實時天氣 API
+      const fetchWeatherData = useCallback(async () => {
+        setIsWeatherLoading(true);
+        try {
+          const res = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc');
+          if (res.ok) {
+            const data = await res.json();
+            const tempObj = data.temperature?.data?.find(d => d.place.includes('北區') || d.place.includes('上水') || d.place.includes('大埔')) 
+              || data.temperature?.data?.find(d => d.place === '香港天文台') 
+              || data.temperature?.data?.[0];
+            
+            const temp = tempObj ? tempObj.value : 28;
+            const humidity = data.humidity?.data?.[0]?.value || 75;
+            const uvData = data.uvindex?.data?.[0];
+            const uvVal = uvData ? uvData.value : 5;
+            const uvLvl = uvVal > 10 ? '極高' : uvVal > 7 ? '甚高' : uvVal > 5 ? '高' : uvVal > 2 ? '中等' : '低';
+
+            const districtRains = (data.rainfall?.data || []).slice(0, 3).map(r => ({
+              name: r.place,
+              amount: `${r.max || r.min || 0} mm`
+            }));
+            const hasRain = data.rainfall?.data?.some(r => (r.max || 0) > 0);
+
+            const iconCode = data.icon?.[0] || 50;
+            let cType = 'sun';
+
+            if ([65].includes(iconCode) || (data.warningMessage || []).some(m => m.includes('雷暴'))) {
+              cType = 'thunder';
+            } else if ([62, 63, 64].includes(iconCode) || hasRain) {
+              cType = 'rain';
+            } else if ([51, 52].includes(iconCode)) {
+              cType = 'cloud-sun';
+            } else if ([60, 61].includes(iconCode)) {
+              cType = 'cloud';
+            } else {
+              const hours = new Date().getHours();
+              cType = (hours >= 19 || hours < 6) ? 'night' : 'sun';
+            }
+
+            const warningList = (data.warningMessage || []).map((msg, i) => ({
+              code: `WARN_${i}`,
+              name: msg,
+              active: true
+            }));
+
+            setWeather({
+              temperature: temp,
+              humidity: humidity,
+              uvIndex: uvVal,
+              uvLevel: uvLvl,
+              rainfallStatus: hasRain ? '部分地區有雨，出門候車請備傘' : '聯和墟大致天晴，降雨率低',
+              rainfallProb: hasRain ? 75 : 15,
+              conditionType: cType,
+              districtRainfall: districtRains,
+              warnings: warningList.length > 0 ? warningList : [{ code: 'NORMAL', name: '現無特別天氣警告', active: false }],
+              hourlyForecast: [
+                { time: '現在', temp: temp, rain: hasRain ? 60 : 15, icon: cType },
+                { time: '+2小時', temp: temp, rain: hasRain ? 45 : 20, icon: cType },
+                { time: '+4小時', temp: Math.max(20, temp - 1), rain: 20, icon: 'cloud-sun' },
+                { time: '+6小時', temp: Math.max(19, temp - 2), rain: 10, icon: 'sun' }
+              ]
+            });
+          }
+        } catch (err) {
+          console.warn('天氣 API 異常:', err);
+        } finally {
+          setIsWeatherLoading(false);
+        }
+      }, []);
+
+      useEffect(() => {
+        fetchWeatherData();
+        const weatherInterval = setInterval(fetchWeatherData, 15 * 60 * 1000);
+        return () => clearInterval(weatherInterval);
+      }, [fetchWeatherData]);
+
+      // 計算附近站點
+      const computeNearbyStops = useCallback((lat, lon) => {
+        if (!allKmbStopsRef.current) return [];
+        return allKmbStopsRef.current
+          .map(s => {
+            const sLat = parseFloat(s.lat);
+            const sLon = parseFloat(s.long);
+            if (isNaN(sLat) || isNaN(sLon)) return null;
+            const dist = getDistanceFromLatLonInKm(lat, lon, sLat, sLon);
+            return { ...s, distanceMeters: Math.round(dist * 1000) };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.distanceMeters - b.distanceMeters)
+          .slice(0, 8);
+      }, []);
+
+      // 4. GPS 尋找附近站點
+      const handleGPSLocate = async () => {
+        setIsLocating(true);
+
+        const runLocate = async (lat, lon, locName) => {
+          try {
+            if (!allKmbStopsRef.current) {
+              const res = await fetch('https://data.etabus.gov.hk/v1/transport/kmb/stop');
+              if (res.ok) {
+                const json = await res.json();
+                allKmbStopsRef.current = json.data || [];
+              }
+            }
+            const stops = computeNearbyStops(lat, lon);
+            setNearbyStops(stops);
+            setCurrentLocationName(locName);
+            setShowNearbyModal(true);
+          } catch (e) {
+            console.error(e);
+          } finally {
+            setIsLocating(false);
+          }
+        };
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => runLocate(pos.coords.latitude, pos.coords.longitude, '目前 GPS 位置'),
+            () => runLocate(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, DEFAULT_LOCATION.name),
+            { enableHighAccuracy: true, timeout: 5000 }
+          );
+        } else {
+          runLocate(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, DEFAULT_LOCATION.name);
+        }
+      };
+
+      // 5. 九巴路線與站點 API
+      const fetchRouteDetails = useCallback(async (routeNum, dir) => {
+        setIsBusLoading(true);
+        const cleanRoute = routeNum.trim().toUpperCase();
+        let bound = dir === 'outbound' ? 'outbound' : 'inbound';
+
+        try {
+          let infoJson = null;
+          let routeInfoRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route/${cleanRoute}/bound/${bound}/service_type/1`);
+          
+          if (!routeInfoRes.ok && bound === 'inbound') {
+            bound = 'outbound';
+            routeInfoRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route/${cleanRoute}/bound/outbound/service_type/1`);
+          }
+
+          if (routeInfoRes.ok) {
+            infoJson = await routeInfoRes.json();
+          }
+
+          const isCircular = infoJson?.data?.orig_tc === infoJson?.data?.dest_tc || cleanRoute === '278K' || cleanRoute === '70K';
+          setIsCircularRoute(isCircular);
+
+          if (infoJson?.data) {
+            setRouteMeta({
+              orig: infoJson.data.orig_tc,
+              dest: isCircular ? `${infoJson.data.dest_tc} (循環線)` : infoJson.data.dest_tc
+            });
+          }
+
+          const routeStopRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${cleanRoute}/${bound}/1`);
+          if (!routeStopRes.ok) throw new Error('找不到該路線');
+          const routeStopData = await routeStopRes.json();
+          
+          if (!routeStopData.data || routeStopData.data.length === 0) {
+            throw new Error('此方向暫無班次資料');
+          }
+
+          const rawStops = routeStopData.data;
+          const resolvedStops = await Promise.all(
+            rawStops.map(async (item) => {
+              try {
+                const stopRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/stop/${item.stop}`);
+                if (stopRes.ok) {
+                  const stopJson = await stopRes.json();
+                  return {
+                    stopId: item.stop,
+                    seq: parseInt(item.seq, 10),
+                    name: stopJson.data ? stopJson.data.name_tc : `分站 ${item.seq}`,
+                    lat: stopJson.data?.lat,
+                    long: stopJson.data?.long
+                  };
+                }
+              } catch (e) {}
+              return { stopId: item.stop, seq: parseInt(item.seq, 10), name: `第 ${item.seq} 站` };
+            })
+          );
+
+          resolvedStops.sort((a, b) => a.seq - b.seq);
+          setStopsList(resolvedStops);
+          
+          if (resolvedStops.length > 0) {
+            const luenWoStop = resolvedStops.find(s => s.name.includes('聯和墟'));
+            setSelectedStop(luenWoStop || resolvedStops[0]);
+          }
+        } catch (err) {
+          setStopsList([]);
+          setSelectedStop(null);
+          setEtaData([]);
+        } finally {
+          setIsBusLoading(false);
+        }
+      }, []);
+
+      // 6. 取得 ETA
+      const fetchBusETA = useCallback(async () => {
+        if (!selectedStop || !currentRoute) return;
+        setIsBusLoading(true);
+
+        try {
+          const cleanRoute = currentRoute.trim().toUpperCase();
+          const etaRes = await fetch(`https://data.etabus.gov.hk/v1/transport/kmb/eta/${selectedStop.stopId}/${cleanRoute}/1`);
+          
+          if (etaRes.ok) {
+            const json = await etaRes.json();
+            const dirCode = direction === 'outbound' ? 'O' : 'I';
+            const now = new Date();
+            const nowTime = now.getTime();
+
+            let validList = (json.data || []).filter(item => {
+              if (!item.eta) return false;
+              if (isCircularRoute) return true;
+              return item.dir === dirCode || !item.dir;
+            });
+
+            let parsedList = validList
+              .map(item => {
+                const etaTime = new Date(item.eta);
+                const diffMs = etaTime.getTime() - nowTime;
+                const diffMin = Math.max(0, Math.round(diffMs / 60000));
+                return {
+                  timestamp: etaTime.getTime(),
+                  timeStr: etaTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  diffMinutes: diffMin,
+                  remark: item.rmk_tc || (item.co === 'KMB' ? '實時 GPS' : '預定班次'),
+                  dest: item.dest_tc || ''
+                };
+              })
+              .filter(item => item.timestamp >= nowTime - 45000);
+
+            parsedList.sort((a, b) => a.timestamp - b.timestamp);
+
+            const uniqueEtas = [];
+            const seenTimes = new Set();
+            for (const item of parsedList) {
+              if (!seenTimes.has(item.timeStr)) {
+                seenTimes.add(item.timeStr);
+                uniqueEtas.push({
+                  ...item,
+                  etaSeq: uniqueEtas.length + 1
+                });
+              }
+              if (uniqueEtas.length >= 3) break;
+            }
+
+            if (uniqueEtas.length > 0) {
+              setEtaData(uniqueEtas);
+              setLastBusUpdate(new Date());
+              setIsBusLoading(false);
+              return;
+            }
+          }
+          setEtaData([]);
+          setLastBusUpdate(new Date());
+        } catch (err) {
+          console.warn(err);
+        } finally {
+          setIsBusLoading(false);
+        }
+      }, [selectedStop, currentRoute, direction, isCircularRoute]);
+
+      useEffect(() => {
+        fetchRouteDetails(currentRoute, direction);
+      }, [currentRoute, direction, fetchRouteDetails]);
+
+      useEffect(() => {
+        if (selectedStop) {
+          fetchBusETA();
+          setCountdown(60);
+        }
+      }, [selectedStop, fetchBusETA]);
+
+      const handleSearch = (e) => {
+        if (e) e.preventDefault();
+        if (routeInput.trim()) setCurrentRoute(routeInput.trim().toUpperCase());
+      };
+
+      return (
+        <div className={`h-screen w-screen overflow-hidden select-none transition-all duration-500 font-sans p-2.5 sm:p-3 flex flex-col justify-between relative ${theme.bgGradient}`}>
+
+          {/* 礦物環境動態光暈 */}
+          <div className={`fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none transition-colors duration-700 ${theme.glow1}`} />
+          <div className={`fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none transition-colors duration-700 ${theme.glow2}`} />
+
+          {/* 1. 頂欄：大時間 + 大日期 + 聯和墟定位 + 色彩切換器 */}
+          <header className={`h-20 flex-shrink-0 px-5 rounded-2xl flex items-center justify-between border backdrop-blur-md transition-all shadow-md z-10 ${theme.cardBg}`}>
+            
+            {/* 左側：LOGO 與當前色彩主題標籤 */}
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border shadow-inner ${
+                theme.isDark ? 'bg-[#1E2830] border-[#314250]' : 'bg-[#EDE4D3] border-[#D8CCBA]'
+              }`}>
+                <Layers className={`w-6 h-6 ${theme.accentText}`} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-base sm:text-lg font-black tracking-tight">香港實時生活儀表板</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono font-bold flex items-center gap-1 border ${theme.accentBadge}`}>
+                    <MapPin className="w-3 h-3 text-amber-400" />
+                    粉嶺 聯和墟
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-400">
+                  主題：<span className="font-semibold">{theme.name}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 中間【超大】時間與星期 */}
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className={`text-3xl sm:text-5xl font-mono font-black tracking-wider leading-none drop-shadow-sm ${theme.accentText}`}>
+                {currentTime.toLocaleTimeString('zh-HK', { hour12: false })}
+              </div>
+              <div className={`pl-4 border-l-2 flex flex-col justify-center ${theme.isDark ? 'border-stone-700' : 'border-stone-300'}`}>
+                <div className="text-sm sm:text-base font-bold leading-tight">
+                  {currentTime.getFullYear()} 年 {currentTime.getMonth()+1} 月 {currentTime.getDate()} 日
+                </div>
+                <div className="text-xs sm:text-sm font-extrabold text-amber-400 mt-0.5">
+                  星期{['日','一','二','三','四','五','六'][currentTime.getDay()]}
+                </div>
+              </div>
+            </div>
+
+            {/* 右側操作：色彩切換按鈕 + 手動刷新 */}
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setShowThemeModal(true)}
+                title="轉換色彩主題 (Modern Mineral Themes)"
+                className={`px-3 py-2.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all active:scale-95 shadow-sm ${
+                  theme.isDark ? 'bg-[#1D262D] hover:bg-[#25323C] border-[#2E3D4B] text-stone-200' : 'bg-[#EDE4D5] hover:bg-[#E3D9C7] border-[#D3C7B4] text-stone-800'
+                }`}
+              >
+                <Palette className={`w-4 h-4 ${theme.accentText}`} />
+                <span className="hidden sm:inline">換色風格</span>
+                <span className="w-3 h-3 rounded-full border border-white/40 shadow-inner" style={{ backgroundColor: theme.dotColor }} />
+              </button>
+
+              <button
+                onClick={() => { fetchWeatherData(); fetchBusETA(); setCountdown(60); }}
+                title="手動刷新"
+                className={`p-2.5 rounded-xl border transition-all active:scale-95 ${
+                  theme.isDark ? 'bg-[#1D262D] hover:bg-[#25323C] border-[#2E3D4B] text-stone-300' : 'bg-[#EDE4D5] hover:bg-[#E3D9C7] border-[#D3C7B4] text-stone-700'
+                }`}
+              >
+                <RefreshCw className={`w-5 h-5 ${isWeatherLoading || isBusLoading ? 'animate-spin' : ''} ${theme.accentText}`} />
+              </button>
+            </div>
+          </header>
+
+          {/* 2. MAIN CONTENT (零滾動自適應排版) */}
+          <div className="flex-1 min-h-0 grid grid-cols-12 gap-3 my-2.5 z-10">
+
+            {/* 左側：加大天氣公仔 + 大字體氣溫 (5 欄) */}
+            <div className={`col-span-5 flex flex-col justify-between p-4 rounded-2xl border backdrop-blur-md overflow-hidden ${theme.cardBg}`}>
+              <div>
+                {/* 天氣標題 */}
+                <div className="flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-2">
+                    <Sun className="w-5 h-5 text-amber-400" />
+                    <span className="text-xs font-bold text-stone-400 tracking-wider">香港天文台（北區氣象）</span>
+                  </div>
+                  {weather.warnings.slice(0, 1).map((w, idx) => (
+                    <span key={idx} className={`text-xs px-2.5 py-0.5 rounded-full font-bold border truncate max-w-[150px] ${
+                      w.active ? 'bg-rose-950/60 border-rose-700 text-rose-300 animate-pulse' : 'bg-stone-800 text-stone-400'
+                    }`}>
+                      {w.name}
+                    </span>
+                  ))}
+                </div>
+
+                {/* 【加大動態天氣公仔 + 超大氣溫核心】 */}
+                <div className="flex items-center justify-between my-2 p-2 rounded-2xl bg-black/10 border border-white/5">
+                  <div className="flex flex-col justify-center">
+                    <div className="flex items-baseline">
+                      <span className="text-6xl sm:text-7xl font-mono font-black tracking-tighter leading-none">
+                        {weather.temperature}
+                      </span>
+                      <span className="text-3xl text-stone-400 font-light ml-1">°C</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sky-400 font-bold text-xs mt-1">
+                      <CloudRain className="w-4 h-4" />
+                      <span>降雨率 {weather.rainfallProb}%</span>
+                    </div>
+                    <div className="text-[11px] text-stone-400 font-medium max-w-[150px] truncate mt-0.5">
+                      {weather.rainfallStatus}
+                    </div>
+                  </div>
+
+                  {/* 加大天氣公仔 */}
+                  <LargeWeatherAvatar 
+                    conditionType={weather.conditionType} 
+                    isNight={isNightTime} 
+                    isDark={theme.isDark} 
+                  />
+                </div>
+
+                {/* 4 宮格氣象指標 */}
+                <div className="grid grid-cols-4 gap-2 my-2">
+                  <div className={`p-2 rounded-xl border text-center ${theme.innerCard}`}>
+                    <div className="text-[11px] text-stone-400">降雨機率</div>
+                    <div className="text-base font-bold font-mono text-sky-400 mt-0.5">{weather.rainfallProb}%</div>
+                  </div>
+                  <div className={`p-2 rounded-xl border text-center ${theme.innerCard}`}>
+                    <div className="text-[11px] text-stone-400">相對濕度</div>
+                    <div className={`text-base font-bold font-mono mt-0.5 ${theme.accentText}`}>{weather.humidity}%</div>
+                  </div>
+                  <div className={`p-2 rounded-xl border text-center ${theme.innerCard}`}>
+                    <div className="text-[11px] text-stone-400">紫外線</div>
+                    <div className="text-base font-bold font-mono text-amber-400 mt-0.5">{weather.uvIndex} ({weather.uvLevel})</div>
+                  </div>
+                  <div className={`p-2 rounded-xl border text-center ${theme.innerCard}`}>
+                    <div className="text-[11px] text-stone-400">空氣質素</div>
+                    <div className="text-base font-bold font-mono text-teal-400 mt-0.5">3 / 低</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 分區雨量監測 */}
+              <div className={`p-2.5 rounded-xl border space-y-1.5 ${theme.innerCard}`}>
+                <div className="text-xs font-bold text-stone-400 flex items-center justify-between">
+                  <span>分區累積雨量（北區及鄰近）</span>
+                  <span className="text-[10px] opacity-75 font-mono">過去 1 小時</span>
+                </div>
+                {weather.districtRainfall.length > 0 ? (
+                  weather.districtRainfall.map((d, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-stone-300 w-28 truncate font-medium">{d.name}</span>
+                      <div className="flex-1 mx-2.5 h-2 rounded-full bg-stone-700/30 overflow-hidden">
+                        <div className="h-full bg-sky-400 rounded-full" style={{ width: `${Math.min(100, (parseFloat(d.amount)||0)*25 + 5)}%` }} />
+                      </div>
+                      <span className="font-mono font-bold text-sky-400">{d.amount}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-stone-400 text-center py-1">全港各區雨量平穩</div>
+                )}
+              </div>
+
+              {/* 小時預測條 */}
+              <div className="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-stone-700/20 text-center">
+                {weather.hourlyForecast.map((h, i) => (
+                  <div key={i} className="text-xs">
+                    <div className="text-stone-400 font-medium">{h.time}</div>
+                    <div className="font-mono font-extrabold text-sm my-0.5">{h.temp}°</div>
+                    <div className="text-sky-400 font-mono text-[11px]">{h.rain}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 右側：九巴實時預報 (7 欄 - 聯和墟常用路線快捷版) */}
+            <div className={`col-span-7 flex flex-col justify-between p-4 rounded-2xl border backdrop-blur-md overflow-hidden ${theme.cardBg}`}>
+              
+              {/* 搜尋與常用路線 */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={routeInput}
+                        onChange={(e) => setRouteInput(e.target.value)}
+                        placeholder="輸入巴士路線 (如 277X, 278K, 78X)..."
+                        className={`w-full h-10 pl-9 pr-3 rounded-xl border text-sm font-mono font-bold uppercase outline-none focus:ring-1 focus:ring-emerald-400 ${
+                          theme.isDark ? 'bg-[#111618] border-[#222E37] text-white' : 'bg-[#FAF6EF] border-[#DDD5C7] text-stone-900'
+                        }`}
+                      />
+                      <Search className="w-4 h-4 absolute left-3 top-3 text-stone-400 pointer-events-none" />
+                    </div>
+                    <button
+                      type="submit"
+                      className={`px-4 h-10 rounded-xl font-bold text-xs flex items-center gap-1 active:scale-95 shadow-sm transition-all ${theme.btnPrimary}`}
+                    >
+                      <span>查詢</span>
+                    </button>
+                  </form>
+
+                  {/* 周邊站點 */}
+                  <button
+                    onClick={handleGPSLocate}
+                    disabled={isLocating}
+                    className={`h-10 px-3.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold active:scale-95 ${
+                      theme.isDark ? 'bg-[#1C252C] border-[#2C3C48] text-stone-200' : 'bg-[#EDE4D5] border-[#D4C7B5] text-stone-800'
+                    }`}
+                  >
+                    {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className={`w-4 h-4 ${theme.accentText}`} />}
+                    <span>聯和墟周邊站點</span>
+                  </button>
+                </div>
+
+                {/* 聯和墟專屬常用路線快捷按鈕 */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                  <span className="text-xs text-stone-400 whitespace-nowrap font-medium flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-amber-400" />
+                    聯和墟路線：
+                  </span>
+                  {LUEN_WO_HUI_ROUTES.map(({ route, label }) => (
+                    <button
+                      key={route}
+                      onClick={() => { setRouteInput(route); setCurrentRoute(route); }}
+                      className={`text-xs px-2.5 py-1 rounded-lg font-mono font-bold border transition-all whitespace-nowrap ${
+                        currentRoute === route 
+                          ? theme.activeChip
+                          : theme.isDark ? 'bg-[#1A2228] border-[#2C3843] text-stone-300' : 'bg-[#EAE1D2] border-[#D6CABC] text-stone-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 路線方向切換 */}
+              <div className={`p-2.5 rounded-xl border flex items-center justify-between ${theme.innerCard}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono font-black text-base">
+                    {currentRoute}
+                  </span>
+                  <div className="text-sm font-bold flex items-center gap-2">
+                    <span className="text-stone-300">{routeMeta.orig || '粉嶺(聯和墟)'}</span>
+                    {isCircularRoute ? (
+                      <RotateCw className={`w-3.5 h-3.5 ${theme.accentText} animate-spin-slow`} />
+                    ) : (
+                      <ArrowRight className={`w-4 h-4 ${theme.accentText}`} />
+                    )}
+                    <span className={theme.accentText}>{routeMeta.dest || '循環線'}</span>
+                  </div>
+                </div>
+
+                {!isCircularRoute ? (
+                  <button
+                    onClick={() => setDirection(d => d === 'outbound' ? 'inbound' : 'outbound')}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 active:scale-95 ${
+                      theme.isDark ? 'bg-[#1D252C] border-[#313F4B] text-stone-200' : 'bg-[#E7DED0] border-[#D0C3B0] text-stone-800'
+                    }`}
+                  >
+                    <ArrowRightLeft className={`w-3.5 h-3.5 ${theme.accentText}`} />
+                    <span>{direction === 'outbound' ? '切換回程' : '切換去程'}</span>
+                  </button>
+                ) : (
+                  <div className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold ${theme.accentBadge} flex items-center gap-1`}>
+                    <RotateCw className="w-3 h-3" />
+                    <span>循環線無須切換</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 站點選擇列表 */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-stone-400 font-medium">
+                  <span className="flex items-center gap-1">
+                    <MapPin className={`w-3.5 h-3.5 ${theme.accentText}`} /> 選擇上車分站（目前：<strong className="text-amber-400">{selectedStop?.name || '聯和墟'}</strong>）：
+                  </span>
+                  <span className={`font-mono text-xs ${theme.accentText}`}>即時 GPS 校準</span>
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto py-1 scrollbar-thin">
+                  {stopsList.map(s => {
+                    const active = selectedStop?.seq === s.seq;
+                    return (
+                      <button
+                        key={s.seq}
+                        onClick={() => setSelectedStop(s)}
+                        className={`px-3 py-2 rounded-xl border text-left flex-shrink-0 transition-all ${
+                          active
+                            ? theme.activeChip
+                            : theme.isDark ? 'bg-[#111618] border-[#222E37] text-stone-300' : 'bg-[#F2ECE1] border-[#DDD5C7] text-stone-700'
+                        }`}
+                      >
+                        <div className="text-[10px] opacity-75 font-mono">#{s.seq}</div>
+                        <div className="text-xs font-bold whitespace-nowrap max-w-[130px] truncate">{s.name}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 三班車到站預報 */}
+              <div className="grid grid-cols-3 gap-2.5">
+                {isBusLoading ? (
+                  <div className={`col-span-3 p-4 rounded-xl border text-center text-xs flex items-center justify-center gap-2 ${theme.innerCard}`}>
+                    <RefreshCw className={`w-4 h-4 animate-spin ${theme.accentText}`} />
+                    <span>正在校準九巴衛星即時班次...</span>
+                  </div>
+                ) : etaData.length > 0 ? (
+                  etaData.slice(0, 3).map((eta, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-xl border relative ${
+                        idx === 0
+                          ? theme.isDark ? `bg-gradient-to-br from-[#1C292E] to-[#12181B] ${theme.accentBorder} shadow-sm` : 'bg-emerald-50 border-emerald-300'
+                          : theme.innerCard
+                      }`}
+                    >
+                      <div className="flex justify-between text-xs text-stone-400 font-medium">
+                        <span>第 {eta.etaSeq} 班</span>
+                        {idx === 0 && <span className={`font-bold ${theme.accentText}`}>最快抵達</span>}
+                      </div>
+                      
+                      <div className="my-1 flex items-baseline gap-1.5">
+                        <span className={`text-4xl font-mono font-black ${idx === 0 ? theme.accentText : ''}`}>
+                          {eta.diffMinutes}
+                        </span>
+                        <span className="text-xs text-stone-400 font-medium">分鐘</span>
+                      </div>
+
+                      <div className="text-xs text-stone-400 flex justify-between border-t border-stone-700/20 pt-1.5 mt-1">
+                        <span className="font-mono font-bold">{eta.timeStr}</span>
+                        <span className="truncate max-w-[80px] text-right">{eta.remark}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className={`col-span-3 p-4 rounded-xl border text-center text-xs ${theme.innerCard}`}>
+                    <div className="font-bold text-amber-400 text-sm">暫無預計抵達班次</div>
+                    <div className="text-xs text-stone-400 mt-0.5">可能未到發車時間或非服務時段。</div>
+                  </div>
+                )}
+              </div>
+
+              {/* 底部狀態列 */}
+              <div className="flex items-center justify-between text-xs text-stone-400 pt-1.5 border-t border-stone-700/20">
+                <div className="flex items-center gap-1.5">
+                  <Activity className={`w-3.5 h-3.5 animate-pulse ${theme.accentText}`} />
+                  <span>自動刷新：<strong className={`font-mono ${theme.accentText}`}>{countdown}s</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5 font-mono">
+                  <History className="w-3.5 h-3.5 text-amber-400" />
+                  <span>上次更新：{lastBusUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* 色彩主題切換彈窗 */}
+          {showThemeModal && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+              <div className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl transition-all ${
+                theme.isDark ? 'bg-[#181F24] border-[#2F3E4C] text-white' : 'bg-[#FCFAF7] border-[#DFD6C7] text-stone-900'
+              }`}>
+                <div className="flex items-center justify-between pb-4 border-b border-stone-700/20">
+                  <div className="flex items-center gap-2.5">
+                    <Palette className={`w-6 h-6 ${theme.accentText}`} />
+                    <div>
+                      <h3 className="font-extrabold text-lg">切換礦物色彩主題</h3>
+                      <p className="text-xs text-stone-400">專為 Galaxy Tab S9 設計的天然礦石美學</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowThemeModal(false)}
+                    className="p-2 rounded-xl bg-stone-700/30 hover:bg-stone-700/50 transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                  {Object.values(MINERAL_THEMES).map((th) => {
+                    const isSelected = currentThemeKey === th.id;
+                    return (
+                      <button
+                        key={th.id}
+                        onClick={() => {
+                          setCurrentThemeKey(th.id);
+                          setShowThemeModal(false);
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between h-24 transition-all relative overflow-hidden active:scale-95 ${
+                          isSelected
+                            ? 'ring-2 ring-emerald-400 border-transparent shadow-lg'
+                            : theme.isDark ? 'bg-[#111618] hover:bg-[#1C242A] border-[#283642]' : 'bg-[#F2ECE1] hover:bg-[#E8DFC0] border-[#DDD5C7]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="w-5 h-5 rounded-full border border-white/50 shadow" style={{ backgroundColor: th.dotColor }} />
+                          {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold">{th.name.split(' ')[0]}</div>
+                          <div className="text-[10px] text-stone-400 font-mono">{th.isDark ? '暗夜深色' : '溫潤淺色'}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 聯和墟 / GPS 附近站點彈窗 */}
+          {showNearbyModal && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className={`w-full max-w-md rounded-2xl p-5 border shadow-2xl ${
+                theme.isDark ? 'bg-[#181F24] border-[#2F3E4C] text-white' : 'bg-[#FCFAF7] border-[#DFD6C7] text-stone-900'
+              }`}>
+                <div className="flex items-center justify-between pb-3 border-b border-stone-700/20">
+                  <div className="flex items-center gap-2 text-base font-bold text-emerald-400">
+                    <Navigation className="w-5 h-5" />
+                    <span>{currentLocationName} 周邊巴士站</span>
+                  </div>
+                  <button
+                    onClick={() => setShowNearbyModal(false)}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-stone-700/30 hover:bg-stone-700/50"
+                  >
+                    關閉
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3 max-h-64 overflow-y-auto">
+                  {nearbyStops.map((st, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        const match = stopsList.find(s => s.stopId === st.stop);
+                        if (match) setSelectedStop(match);
+                        else setSelectedStop({ stopId: st.stop, seq: 1, name: st.name_tc });
+                        setShowNearbyModal(false);
+                      }}
+                      className={`p-3 rounded-xl border text-left text-xs transition-all active:scale-95 ${
+                        theme.isDark ? 'bg-[#111618] hover:bg-[#1C242A] border-[#26333E]' : 'bg-[#F2ECE1] hover:bg-[#E7DECf] border-[#DDD5C7]'
+                      }`}
+                    >
+                      <div className="font-bold truncate text-sm">{st.name_tc}</div>
+                      <div className="text-xs text-amber-400 font-mono mt-1">{st.distanceMeters} 米距離</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. FOOTER (極簡狀態列) */}
+          <footer className="h-5 flex-shrink-0 flex items-center justify-between text-[11px] text-stone-500 px-2 border-t border-stone-800/40 z-10">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>香港天文台 (HKO) & 九龍巴士 (KMB DATA.GOV.HK API) 實時連線</span>
+            </div>
+            <div>粉嶺聯和墟總站 · 常用專線快捷版 · Samsung Galaxy Tab S9</div>
+          </footer>
+
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
