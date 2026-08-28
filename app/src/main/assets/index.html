@@ -3,54 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#0E1214">
-  <title>香港實時生活儀表板 (粉嶺聯和墟)</title>
+  <title>香港實時生活儀表板</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- React & ReactDOM -->
+  <!-- React 18 & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   
-  <!-- Babel Standalone -->
+  <!-- Babel Standalone for JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide React Icons (UMD) -->
+  <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
 
   <style>
-    /* 隱藏滾動條但保持滾動功能 */
-    .scrollbar-none::-webkit-scrollbar {
-      display: none;
+    /* 防止 WebView 出現選取與捲動條溢出 */
+    * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
-    .scrollbar-none {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .scrollbar-thin::-webkit-scrollbar {
-      height: 4px;
-    }
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-    }
-    @keyframes spin-slow {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .animate-spin-slow {
-      animation: spin-slow 12s linear infinite;
-    }
-    html, body, #root {
-      height: 100%;
-      width: 100%;
+    body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #0E1214;
+    }
+    /* 自訂極細捲軸 */
+    ::-webkit-scrollbar {
+      height: 4px;
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(150, 150, 150, 0.3);
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -59,64 +49,42 @@
 
   <script type="text/babel">
     const { useState, useEffect, useMemo, useCallback, useRef } = React;
+    const { 
+      Bus, 
+      CloudRain, 
+      Sun, 
+      Droplets, 
+      Clock, 
+      RefreshCw, 
+      ArrowRightLeft, 
+      MapPin, 
+      Sparkles, 
+      Wifi, 
+      Flame, 
+      Search, 
+      Umbrella, 
+      Gauge, 
+      Layers, 
+      Activity, 
+      History, 
+      ArrowRight, 
+      Crosshair, 
+      Loader2, 
+      Navigation,
+      Palette,
+      Check,
+      X,
+      CloudLightning,
+      CloudSun,
+      CloudFog,
+      Cloud,
+      Moon,
+      CloudMoonRain,
+      SunMedium,
+      RotateCw
+    } = lucideReact;
 
-    // Lucide Icon Helper Component
-    function LucideIcon({ name, className = '', style = {} }) {
-      const iconRef = useRef(null);
-
-      useEffect(() => {
-        if (iconRef.current && window.lucide) {
-          // 清空前一次渲染
-          iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
-          window.lucide.createIcons({
-            root: iconRef.current,
-            attrs: {
-              class: className
-            }
-          });
-        }
-      }, [name, className]);
-
-      return <span ref={iconRef} className="inline-flex items-center justify-center" style={style}></span>;
-    }
-
-    // 常用圖標定義
-    const Bus = (props) => <LucideIcon name="bus" {...props} />;
-    const CloudRain = (props) => <LucideIcon name="cloud-rain" {...props} />;
-    const Sun = (props) => <LucideIcon name="sun" {...props} />;
-    const Droplets = (props) => <LucideIcon name="droplets" {...props} />;
-    const Clock = (props) => <LucideIcon name="clock" {...props} />;
-    const RefreshCw = (props) => <LucideIcon name="refresh-cw" {...props} />;
-    const ArrowRightLeft = (props) => <LucideIcon name="arrow-right-left" {...props} />;
-    const MapPin = (props) => <LucideIcon name="map-pin" {...props} />;
-    const Sparkles = (props) => <LucideIcon name="sparkles" {...props} />;
-    const Wifi = (props) => <LucideIcon name="wifi" {...props} />;
-    const Flame = (props) => <LucideIcon name="flame" {...props} />;
-    const Search = (props) => <LucideIcon name="search" {...props} />;
-    const Umbrella = (props) => <LucideIcon name="umbrella" {...props} />;
-    const Gauge = (props) => <LucideIcon name="gauge" {...props} />;
-    const Layers = (props) => <LucideIcon name="layers" {...props} />;
-    const Activity = (props) => <LucideIcon name="activity" {...props} />;
-    const History = (props) => <LucideIcon name="history" {...props} />;
-    const ArrowRight = (props) => <LucideIcon name="arrow-right" {...props} />;
-    const Crosshair = (props) => <LucideIcon name="crosshair" {...props} />;
-    const Loader2 = (props) => <LucideIcon name="loader-2" {...props} />;
-    const Navigation = (props) => <LucideIcon name="navigation" {...props} />;
-    const Palette = (props) => <LucideIcon name="palette" {...props} />;
-    const Check = (props) => <LucideIcon name="check" {...props} />;
-    const X = (props) => <LucideIcon name="x" {...props} />;
-    const CloudLightning = (props) => <LucideIcon name="cloud-lightning" {...props} />;
-    const CloudSun = (props) => <LucideIcon name="cloud-sun" {...props} />;
-    const CloudFog = (props) => <LucideIcon name="cloud-fog" {...props} />;
-    const Cloud = (props) => <LucideIcon name="cloud" {...props} />;
-    const Moon = (props) => <LucideIcon name="moon" {...props} />;
-    const CloudMoonRain = (props) => <LucideIcon name="cloud-moon-rain" {...props} />;
-    const SunMedium = (props) => <LucideIcon name="sun-medium" {...props} />;
-    const RotateCw = (props) => <LucideIcon name="rotate-cw" {...props} />;
-
-    // =========================================================================
     // 6 款現代礦石調色盤 (Modern Mineral Themes)
-    // =========================================================================
     const MINERAL_THEMES = {
       emerald: {
         id: 'emerald',
@@ -216,7 +184,6 @@
       }
     };
 
-    // 預設參考位置：粉嶺 聯和墟
     const DEFAULT_LOCATION = {
       name: '粉嶺 聯和墟',
       lat: 22.4996,
@@ -235,7 +202,6 @@
       return R * c;
     }
 
-    // 聯和墟專屬核心常用巴士路線
     const LUEN_WO_HUI_ROUTES = [
       { route: '277X', label: '277X 藍田站' },
       { route: '278K', label: '278K 粉嶺站' },
@@ -247,9 +213,6 @@
       { route: '978', label: '978 灣仔北' }
     ];
 
-    // =========================================================================
-    // 加大動態天氣公仔元件
-    // =========================================================================
     function LargeWeatherAvatar({ conditionType, isNight = false, isDark = true }) {
       switch (conditionType) {
         case 'thunder':
@@ -266,7 +229,6 @@
               </div>
             </div>
           );
-
         case 'rain':
         case 'cloud-rain':
           return (
@@ -282,7 +244,6 @@
               </div>
             </div>
           );
-
         case 'cloud-sun':
           return (
             <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
@@ -297,7 +258,6 @@
               </div>
             </div>
           );
-
         case 'cloud':
           return (
             <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
@@ -311,7 +271,6 @@
               </div>
             </div>
           );
-
         case 'night':
           return (
             <div className="relative flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28">
@@ -326,7 +285,6 @@
               </div>
             </div>
           );
-
         case 'sun':
         default:
           return (
@@ -352,7 +310,6 @@
 
       const [currentTime, setCurrentTime] = useState(new Date());
 
-      // 巴士狀態 (預設 277X 聯和墟)
       const [routeInput, setRouteInput] = useState('277X');
       const [currentRoute, setCurrentRoute] = useState('277X');
       const [direction, setDirection] = useState('outbound');
@@ -366,13 +323,11 @@
       const [countdown, setCountdown] = useState(60);
       const [lastBusUpdate, setLastBusUpdate] = useState(new Date());
 
-      // GPS 定位狀態
       const [isLocating, setIsLocating] = useState(false);
       const [currentLocationName, setCurrentLocationName] = useState(DEFAULT_LOCATION.name);
       const [nearbyStops, setNearbyStops] = useState([]);
       const [showNearbyModal, setShowNearbyModal] = useState(false);
 
-      // 天氣狀態
       const [weather, setWeather] = useState({
         temperature: 28,
         humidity: 76,
@@ -394,27 +349,11 @@
         return hours >= 19 || hours < 6;
       }, [currentTime]);
 
-      // 1. 時鐘計時器
       useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
       }, []);
 
-      // 2. 巴士 60 秒倒數
-      useEffect(() => {
-        const countdownTimer = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              fetchBusETA();
-              return 60;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        return () => clearInterval(countdownTimer);
-      }, [currentRoute, direction, selectedStop]);
-
-      // 3. 香港天文台實時天氣 API
       const fetchWeatherData = useCallback(async () => {
         setIsWeatherLoading(true);
         try {
@@ -490,7 +429,6 @@
         return () => clearInterval(weatherInterval);
       }, [fetchWeatherData]);
 
-      // 計算附近站點
       const computeNearbyStops = useCallback((lat, lon) => {
         if (!allKmbStopsRef.current) return [];
         return allKmbStopsRef.current
@@ -506,10 +444,8 @@
           .slice(0, 8);
       }, []);
 
-      // 4. GPS 尋找附近站點
       const handleGPSLocate = async () => {
         setIsLocating(true);
-
         const runLocate = async (lat, lon, locName) => {
           try {
             if (!allKmbStopsRef.current) {
@@ -541,7 +477,6 @@
         }
       };
 
-      // 5. 九巴路線與站點 API
       const fetchRouteDetails = useCallback(async (routeNum, dir) => {
         setIsBusLoading(true);
         const cleanRoute = routeNum.trim().toUpperCase();
@@ -614,7 +549,6 @@
         }
       }, []);
 
-      // 6. 取得 ETA
       const fetchBusETA = useCallback(async () => {
         if (!selectedStop || !currentRoute) return;
         setIsBusLoading(true);
@@ -692,6 +626,19 @@
         }
       }, [selectedStop, fetchBusETA]);
 
+      useEffect(() => {
+        const countdownTimer = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              fetchBusETA();
+              return 60;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(countdownTimer);
+      }, [fetchBusETA]);
+
       const handleSearch = (e) => {
         if (e) e.preventDefault();
         if (routeInput.trim()) setCurrentRoute(routeInput.trim().toUpperCase());
@@ -700,14 +647,11 @@
       return (
         <div className={`h-screen w-screen overflow-hidden select-none transition-all duration-500 font-sans p-2.5 sm:p-3 flex flex-col justify-between relative ${theme.bgGradient}`}>
 
-          {/* 礦物環境動態光暈 */}
           <div className={`fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none transition-colors duration-700 ${theme.glow1}`} />
           <div className={`fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none transition-colors duration-700 ${theme.glow2}`} />
 
-          {/* 1. 頂欄：大時間 + 大日期 + 聯和墟定位 + 色彩切換器 */}
+          {/* 1. 頂欄 */}
           <header className={`h-20 flex-shrink-0 px-5 rounded-2xl flex items-center justify-between border backdrop-blur-md transition-all shadow-md z-10 ${theme.cardBg}`}>
-            
-            {/* 左側：LOGO 與當前色彩主題標籤 */}
             <div className="flex items-center gap-3.5">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border shadow-inner ${
                 theme.isDark ? 'bg-[#1E2830] border-[#314250]' : 'bg-[#EDE4D3] border-[#D8CCBA]'
@@ -728,7 +672,6 @@
               </div>
             </div>
 
-            {/* 中間【超大】時間與星期 */}
             <div className="flex items-center gap-4 sm:gap-6">
               <div className={`text-3xl sm:text-5xl font-mono font-black tracking-wider leading-none drop-shadow-sm ${theme.accentText}`}>
                 {currentTime.toLocaleTimeString('zh-HK', { hour12: false })}
@@ -743,11 +686,9 @@
               </div>
             </div>
 
-            {/* 右側操作：色彩切換按鈕 + 手動刷新 */}
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setShowThemeModal(true)}
-                title="轉換色彩主題 (Modern Mineral Themes)"
                 className={`px-3 py-2.5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all active:scale-95 shadow-sm ${
                   theme.isDark ? 'bg-[#1D262D] hover:bg-[#25323C] border-[#2E3D4B] text-stone-200' : 'bg-[#EDE4D5] hover:bg-[#E3D9C7] border-[#D3C7B4] text-stone-800'
                 }`}
@@ -759,7 +700,6 @@
 
               <button
                 onClick={() => { fetchWeatherData(); fetchBusETA(); setCountdown(60); }}
-                title="手動刷新"
                 className={`p-2.5 rounded-xl border transition-all active:scale-95 ${
                   theme.isDark ? 'bg-[#1D262D] hover:bg-[#25323C] border-[#2E3D4B] text-stone-300' : 'bg-[#EDE4D5] hover:bg-[#E3D9C7] border-[#D3C7B4] text-stone-700'
                 }`}
@@ -769,13 +709,11 @@
             </div>
           </header>
 
-          {/* 2. MAIN CONTENT (零滾動自適應排版) */}
+          {/* 2. 主內容區 */}
           <div className="flex-1 min-h-0 grid grid-cols-12 gap-3 my-2.5 z-10">
-
-            {/* 左側：加大天氣公仔 + 大字體氣溫 (5 欄) */}
+            {/* 天氣欄 */}
             <div className={`col-span-5 flex flex-col justify-between p-4 rounded-2xl border backdrop-blur-md overflow-hidden ${theme.cardBg}`}>
               <div>
-                {/* 天氣標題 */}
                 <div className="flex items-center justify-between pb-1">
                   <div className="flex items-center gap-2">
                     <Sun className="w-5 h-5 text-amber-400" />
@@ -790,7 +728,6 @@
                   ))}
                 </div>
 
-                {/* 【加大動態天氣公仔 + 超大氣溫核心】 */}
                 <div className="flex items-center justify-between my-2 p-2 rounded-2xl bg-black/10 border border-white/5">
                   <div className="flex flex-col justify-center">
                     <div className="flex items-baseline">
@@ -808,7 +745,6 @@
                     </div>
                   </div>
 
-                  {/* 加大天氣公仔 */}
                   <LargeWeatherAvatar 
                     conditionType={weather.conditionType} 
                     isNight={isNightTime} 
@@ -816,7 +752,6 @@
                   />
                 </div>
 
-                {/* 4 宮格氣象指標 */}
                 <div className="grid grid-cols-4 gap-2 my-2">
                   <div className={`p-2 rounded-xl border text-center ${theme.innerCard}`}>
                     <div className="text-[11px] text-stone-400">降雨機率</div>
@@ -837,7 +772,6 @@
                 </div>
               </div>
 
-              {/* 分區雨量監測 */}
               <div className={`p-2.5 rounded-xl border space-y-1.5 ${theme.innerCard}`}>
                 <div className="text-xs font-bold text-stone-400 flex items-center justify-between">
                   <span>分區累積雨量（北區及鄰近）</span>
@@ -858,7 +792,6 @@
                 )}
               </div>
 
-              {/* 小時預測條 */}
               <div className="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-stone-700/20 text-center">
                 {weather.hourlyForecast.map((h, i) => (
                   <div key={i} className="text-xs">
@@ -870,10 +803,8 @@
               </div>
             </div>
 
-            {/* 右側：九巴實時預報 (7 欄 - 聯和墟常用路線快捷版) */}
+            {/* 巴士欄 */}
             <div className={`col-span-7 flex flex-col justify-between p-4 rounded-2xl border backdrop-blur-md overflow-hidden ${theme.cardBg}`}>
-              
-              {/* 搜尋與常用路線 */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <form onSubmit={handleSearch} className="flex-1 flex gap-2">
@@ -897,7 +828,6 @@
                     </button>
                   </form>
 
-                  {/* 周邊站點 */}
                   <button
                     onClick={handleGPSLocate}
                     disabled={isLocating}
@@ -910,7 +840,6 @@
                   </button>
                 </div>
 
-                {/* 聯和墟專屬常用路線快捷按鈕 */}
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
                   <span className="text-xs text-stone-400 whitespace-nowrap font-medium flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-amber-400" />
@@ -932,7 +861,6 @@
                 </div>
               </div>
 
-              {/* 路線方向切換 */}
               <div className={`p-2.5 rounded-xl border flex items-center justify-between ${theme.innerCard}`}>
                 <div className="flex items-center gap-2.5">
                   <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono font-black text-base">
@@ -967,7 +895,6 @@
                 )}
               </div>
 
-              {/* 站點選擇列表 */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs text-stone-400 font-medium">
                   <span className="flex items-center gap-1">
@@ -997,7 +924,6 @@
                 </div>
               </div>
 
-              {/* 三班車到站預報 */}
               <div className="grid grid-cols-3 gap-2.5">
                 {isBusLoading ? (
                   <div className={`col-span-3 p-4 rounded-xl border text-center text-xs flex items-center justify-center gap-2 ${theme.innerCard}`}>
@@ -1040,7 +966,6 @@
                 )}
               </div>
 
-              {/* 底部狀態列 */}
               <div className="flex items-center justify-between text-xs text-stone-400 pt-1.5 border-t border-stone-700/20">
                 <div className="flex items-center gap-1.5">
                   <Activity className={`w-3.5 h-3.5 animate-pulse ${theme.accentText}`} />
@@ -1052,10 +977,9 @@
                 </div>
               </div>
             </div>
-
           </div>
 
-          {/* 色彩主題切換彈窗 */}
+          {/* 色彩主題彈窗 */}
           {showThemeModal && (
             <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
               <div className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl transition-all ${
@@ -1109,7 +1033,7 @@
             </div>
           )}
 
-          {/* 聯和墟 / GPS 附近站點彈窗 */}
+          {/* 周邊站點彈窗 */}
           {showNearbyModal && (
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
               <div className={`w-full max-w-md rounded-2xl p-5 border shadow-2xl ${
@@ -1151,7 +1075,7 @@
             </div>
           )}
 
-          {/* 4. FOOTER (極簡狀態列) */}
+          {/* 3. 頁腳 */}
           <footer className="h-5 flex-shrink-0 flex items-center justify-between text-[11px] text-stone-500 px-2 border-t border-stone-800/40 z-10">
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
@@ -1159,7 +1083,6 @@
             </div>
             <div>粉嶺聯和墟總站 · 常用專線快捷版 · Samsung Galaxy Tab S9</div>
           </footer>
-
         </div>
       );
     }
